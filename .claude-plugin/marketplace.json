@@ -1,0 +1,11 @@
+{
+  "name": "z97m-ocf-tpm2",
+  "owner": { "name": "Mihai Macarie", "url": "https://github.com/mihaimacarie98" },
+  "plugins": [
+    {
+      "name": "z97m-tpm2-skills",
+      "source": "./",
+      "description": "TPM 2.0 + Secure Boot on legacy AMI Aptio IV boards: firmware port, ACPI, pre-boot TPM app, shim/SBAT."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# never commit firmware images or chip dumps (copyrighted / contain MAC, serial, UUID)
+*.bin
+*.rom
+*.ROM
+*.cap
+*.zip
+/Z97MOCF*
+/Z97Ex*
+/Z97Kill*
+file[0-9].bin
+# build outputs
+usb/out/
+tpmboot/build/
+tpmboot/*.o
+tpmboot/*.so
+__pycache__/
+*.pyc

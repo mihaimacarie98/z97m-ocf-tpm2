@@ -1,0 +1,7 @@
+{
+  "name": "z97m-tpm2-skills",
+  "description": "Agent skills for adding TPM 2.0 + Secure Boot to legacy AMI Aptio IV boards (reference: ASRock Z97M OC Formula): firmware TPM2 port, DSDT MSFT0101/TPM2 table, pre-boot TPM bring-up app, signed shim + MokManager + SBAT.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "keywords": ["tpm2", "uefi", "bios-mod", "secure-boot", "shim", "acpi", "ami-aptio"]
+}
