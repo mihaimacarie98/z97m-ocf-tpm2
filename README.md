@@ -2,7 +2,7 @@
 
 ASRock never released a TPM 2.0 BIOS for the **Z97M OC Formula** (last BIOS P2.50, 2018). This repo makes a discrete LPC TPM 2.0 module (ASRock **TPM2-S**, Infineon SLB9665) work in Windows **with Secure Boot on**, which is what Windows 11 and anti-cheat systems such as EA Javelin (Battlefield 6) check for.
 
-**Status:** working on real hardware (i7-4790K, ASRock TPM2-S). `tpm.msc` shows *"The TPM is ready for use"*, specification version 2.0, and `msinfo32` shows Secure Boot State *On*.
+**Status:** working on real hardware (i7-4790K, ASRock TPM2-S). `tpm.msc` shows *"The TPM is ready for use"*, specification version 2.0, and `msinfo32` shows Secure Boot State *On*. **Battlefield 6 launches** (EA Javelin anti-cheat, which enforces TPM 2.0 and Secure Boot), as of 2026-10-13.
 
 > You need an **external SPI programmer** (CH341A or similar) and you must be able to recover with it. The board's BIOS chip is a socketed DIP-8. Flashing modified firmware can brick a board, and you do it at your own risk.
 
