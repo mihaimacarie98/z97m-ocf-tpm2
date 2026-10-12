@@ -20,6 +20,9 @@ What it does (AMI Aptio IV):
 Output for the reference inputs is byte-identical to the image tested on real hardware
 (sha256 c6893a97275c1ed39000e7edeaa348c82ab97642668a9506ec69f1c043b4032c).
 
+V11 (--tpmdxe tpmdxe/tpmdxe.efi): additionally inserts TpmBootDxe, a DXE driver that starts
+the TPM and installs the TPM2 ACPI table on every boot, so no tpmboot/shim chain is needed.
+
 Requires: python3, pip install uefi_firmware   (only its EDK2 LzmaDecompress is used)
 """
 import argparse, hashlib, lzma, struct, sys
@@ -28,6 +31,7 @@ from uefi_firmware import efi_compressor
 STOCK_SHA = '4f896e21e5f817fde2c20c08ce7df5ca707dc8449613b9ac833d21eccd8db326'   # Z97MOCF2.50
 DONOR_SHA = 'f096bc699880657902837245eb02743392d5e94e0e03f05ebdfa3d82174875e2'   # Z97Ex62.80A
 RESULT_SHA = 'c6893a97275c1ed39000e7edeaa348c82ab97642668a9506ec69f1c043b4032c'
+V11_SHA = 'ff3fcc89feb9c53934c964a202c1f947450ee725310afc49ad463798a7ea379b'      # with tpmdxe.efi 0aafe843...
 
 # module name -> FFS GUID (identical GUIDs in stock and donor)
 GUIDS = {
@@ -52,6 +56,8 @@ GUIDS = {
     'Tpm20Acpi':                 '4c8bdf60-2085-4577-8a46-96cb180967bc',
     'AmiBoardInfo':              '9f3a0016-ae55-4288-829d-d22fd344c347',
 }
+TPMBOOTDXE_GUID = '78c18031-b5ae-4112-a635-70285b920a2f'    # FFS GUID chosen for TpmBootDxe
+ACPI_TABLE_PROTOCOL = 'ffe06bdd-6107-46a6-7bb2-5a9c7ec5275c'   # its only dependency
 NESTED_FV_FILE = bytes.fromhex('2f7c71ae421a2b4f886178b79ca07e07')  # ae717c2f-... (compressed DXE FV)
 PAD_GUID = bytes.fromhex('856543e40979604ab5c6ecdea6ebfb54')
 
@@ -146,6 +152,19 @@ def mk_pad(size):
     h[17] = 0xAA
     return bytes(h) + b'\xFF' * (size - 24)
 
+def mk_driver_ffs(pe32, guid, ui_name, depex_guids):
+    """FFS EFI_FV_FILETYPE_DRIVER: DXE_DEPEX + PE32 + USER_INTERFACE sections, checksummed."""
+    def section(typ, data):
+        return (4 + len(data)).to_bytes(3, 'little') + bytes([typ]) + data
+    depex = b''.join(b'\x02' + le(x) for x in depex_guids) + b'\x03' * (len(depex_guids) - 1) + b'\x08'  # PUSH.. AND.. END
+    body = b''
+    for s in (section(0x13, depex), section(0x10, pe32), section(0x15, (ui_name + '\0').encode('utf-16-le'))):
+        body += b'\x00' * (align4(len(body)) - len(body)) + s
+    h = bytearray(le(guid) + bytes(8))
+    h[18] = 0x07; h[19] = 0x40                         # DRIVER, FFS_ATTRIB_CHECKSUM
+    h[20:23] = (24 + len(body)).to_bytes(3, 'little'); h[23] = 0xF8
+    return fix_ffs(bytes(h) + body)
+
 def nested_fv(img):
     """(file offset, decompressed section stream) of the compressed nested DXE FV."""
     i = img.find(NESTED_FV_FILE)
@@ -183,7 +202,7 @@ def patch_dsdt(abi_ffs):
     return fix_ffs(bytes(ffs))
 
 
-def build(stock, donor):
+def build(stock, donor, tpmdxe=None):
     img = bytearray(stock)
 
     # ---------- PEI FV ----------
@@ -241,6 +260,9 @@ def build(stock, donor):
              'TCGSmm', 'TcgLegacy', 'AmiTcgNvflagSample', 'TpmClearOnRollback']}
     repl[g('AmiBoardInfo')] = patch_dsdt(getfile(sn, 0, len(sn), g('AmiBoardInfo')))
     ins = [getfile(kn, 0, len(kn), g(n)) for n in ('TrEEDxe', 'Tpm20PlatformDxe', 'Tpm20Acpi')]
+    if tpmdxe:
+        ins.append(mk_driver_ffs(tpmdxe, TPMBOOTDXE_GUID, 'TpmBootDxe', [ACPI_TABLE_PROTOCOL]))
+        print(f"DXE  + TpmBootDxe {TPMBOOTDXE_GUID} (0x{len(ins[-1]):X} bytes, depex: ACPI table protocol)")
 
     hlen = struct.unpack('<H', sn[0x30:0x32])[0]
     nv = bytearray(sn[:hlen]); nrepl = 0
@@ -252,7 +274,7 @@ def build(stock, donor):
     assert nrepl == 9, nrepl
     for f in ins:
         nv += b'\xFF' * (align8(len(nv)) - len(nv)) + f
-    print(f"DXE  9 modules replaced, 3 inserted, FV 0x{NESTED_OLD:X} -> 0x{NESTED_NEW:X}")
+    print(f"DXE  9 modules replaced, {len(ins)} inserted, FV 0x{NESTED_OLD:X} -> 0x{NESTED_NEW:X}")
     assert len(nv) <= NESTED_NEW
     nv += b'\xFF' * (NESTED_NEW - len(nv))
     struct.pack_into('<Q', nv, 0x20, NESTED_NEW)
@@ -286,13 +308,19 @@ def main():
     ap.add_argument('--stock', required=True, help='Z97MOCF2.50 (ASRock Z97M OC Formula P2.50 ROM)')
     ap.add_argument('--donor', required=True, help='Z97Ex62.80A (ASRock Z97 Extreme6 P2.80A TPM2 beta ROM)')
     ap.add_argument('--out', default='Z97MOCF_TPM2_8MB.bin', help='output 8 MiB SPI image')
+    ap.add_argument('--tpmdxe', help='V11: also insert this TpmBootDxe driver (tpmdxe/tpmdxe.efi)')
     ap.add_argument('--force', action='store_true', help='accept inputs with unexpected checksums')
     a = ap.parse_args()
-    out = build(load_rom(a.stock, STOCK_SHA, 'stock', a.force), load_rom(a.donor, DONOR_SHA, 'donor', a.force))
+    dxe = open(a.tpmdxe, 'rb').read() if a.tpmdxe else None
+    if dxe: assert dxe[:2] == b'MZ' and struct.unpack('<H', dxe[struct.unpack('<I', dxe[0x3C:0x40])[0] + 24 + 68:][:2])[0] == 11, "tpmdxe must be a subsystem-11 PE"
+    out = build(load_rom(a.stock, STOCK_SHA, 'stock', a.force), load_rom(a.donor, DONOR_SHA, 'donor', a.force), dxe)
     open(a.out, 'wb').write(out)
     sha = hashlib.sha256(out).hexdigest()
     print(f"wrote {a.out}  sha256 {sha}")
-    print("MATCHES the hardware-tested image" if sha == RESULT_SHA else "NOTE: differs from the hardware-tested image")
+    if not dxe:
+        print("MATCHES the hardware-tested image" if sha == RESULT_SHA else "NOTE: differs from the hardware-tested image")
+    else:
+        print("matches the V11 reference build" if sha == V11_SHA else "NOTE: differs from the V11 reference build (different tpmdxe.efi?)")
 
 if __name__ == '__main__':
     main()

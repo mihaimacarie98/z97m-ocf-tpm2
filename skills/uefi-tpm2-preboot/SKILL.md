@@ -27,5 +27,13 @@ Source: `tpmboot/tpmboot.c`, about 120 lines. Build: `tpmboot/build.sh` (gnu-efi
 - To run under shim/Secure Boot, the binary needs a `.sbat` section. Add it at **link time**: a linker-script output section after `.data`, filled with an object made from the CSV by `objcopy -I binary`, and keep it with `-j .sbat`. Check the result with `tools/pe_sbat.py check`.
 - Any rebuild changes the Authenticode hash, so the user must enroll it in MokManager again. Tell them this before they reboot.
 
+## In-firmware variant (V11, `tpmdxe/`)
+The same logic can run as a **DXE driver inside the BIOS**. Then no shim or MOK is needed, because Secure Boot doesn't verify code in the firmware volume.
+- Build with `objcopy --target=efi-bsdrv-x86_64 --subsystem=11`; no `.sbat` is needed. Return `EFI_SUCCESS` so the image stays resident.
+- Wrap it in an FFS DRIVER file (type 0x07) with sections DXE_DEPEX = `02 <EFI_ACPI_TABLE_PROTOCOL guid> 08` (PUSH, END), then PE32 and UI. See `mk_driver_ffs()` in `firmware/build_tpm2_bios.py --tpmdxe`.
+- Callbacks invoked by firmware (events) need `__attribute__((ms_abi))` when building with gnu-efi's `EFI_FUNCTION_WRAPPER` (sysv) convention.
+- Re-open the LPC window in a ReadyToBoot event: chipset drivers dispatched later may reprogram decode.
+- Test without flashing: shell (Secure Boot off) → `load tpmdxe.efi` → launch `bootmgfw.efi` from the shell (`usb/nsh/test_tpmdxe.nsh`).
+
 ## Installing
 `usb/nsh/install_sb.nsh` (Secure Boot) puts shim, MokManager and the app (named `grubx64.efi`) in `\EFI\tpmboot\` and in the `\EFI\BOOT\` fallback, and adds a `bcfg` entry at position 0. `install_tpmboot.nsh` is the variant for Secure Boot off.

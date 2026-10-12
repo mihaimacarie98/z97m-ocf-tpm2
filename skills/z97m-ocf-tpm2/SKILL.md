@@ -36,6 +36,9 @@ The expected output sha256 is `c6893a97275c1ed39000e7edeaa348c82ab97642668a9506e
 6. On the first boot, the blue "Verification failed" appears. Have the user press a key, choose **Enroll hash from disk**, pick the NVMe/SSD first partition, and select `EFI\tpmboot\grubx64.efi`. For the stick, the entry is `EFI\BOOT\grubx64.efi` on the stick's volume.
 7. Verify: `tpm.msc` shows ready, 2.0. `msinfo32` shows Secure Boot On. `Get-Tpm`, `Confirm-SecureBootUEFI`.
 
+## V11 alternative (branch `v11`, not yet hardware-tested)
+`firmware/build_tpm2_bios.py … --tpmdxe tpmdxe/tpmdxe.efi` builds the BIOS with TpmBootDxe, which removes the need for steps 3–6's shim chain. Follow `docs/V11.md`: dry run with `test_tpmdxe.nsh` (Secure Boot off), back up the chip, run `migrate/remove_shim_chain.ps1`, then flash with `merge_nvram.py` (keeps the keys and settings). Present it as untested until a user confirms it.
+
 ## Diagnosis map
 Go through the `docs/INSTALL.md` troubleshooting table. The key facts:
 - `0x8028001E` means the TPM2 table is missing, so tpmboot didn't run.

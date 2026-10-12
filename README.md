@@ -6,6 +6,8 @@ ASRock never released a TPM 2.0 BIOS for the **Z97M OC Formula** (last BIOS P2.5
 
 > You need an **external SPI programmer** (CH341A or similar) and you must be able to recover with it. The board's BIOS chip is a socketed DIP-8. Flashing modified firmware can brick a board, and you do it at your own risk.
 
+> **Branch `v11`:** moves tpmboot into the BIOS as a DXE driver, so the shim/MokManager chain goes away and Microsoft revocations can't break it. Built and verified offline, **not yet hardware-tested**; see [docs/V11.md](docs/V11.md). The tested setup is on `main`.
+
 ## How it works (three parts)
 
 | Part | What | Why |
@@ -39,9 +41,11 @@ Both builds are reproducible. `build_tpm2_bios.py` outputs exactly the image tha
 ```
 firmware/   build_tpm2_bios.py (ROM builder), verify_image.py, merge_nvram.py, acpi/min_tpm.dsl
 tpmboot/    tpmboot.c, build.sh (gnu-efi 3.0.17, link-time .sbat), sbat.csv
+tpmdxe/     V11: tpmdxe.c, build.sh (the same TPM bring-up as a DXE driver, built into the BIOS)
+migrate/    remove_shim_chain.ps1 (V9 -> V11)
 tools/      pe_sbat.py: check/add a shim-compatible .sbat section on any PE
 usb/        make_usb.sh, nsh/ (UEFI shell scripts: installers, setup-variable presets, raw TIS tests)
-docs/       INSTALL.md, HOW_IT_WORKS.md, LESSONS.md (every dead end and why)
+docs/       INSTALL.md, HOW_IT_WORKS.md, LESSONS.md (every dead end and why), V11.md
 skills/     Agent Skills (SKILL.md) to let an LLM agent repeat or adapt this work
 ```
 

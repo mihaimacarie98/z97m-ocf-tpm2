@@ -1,5 +1,7 @@
 # Install guide
 
+> This is the hardware-tested V9 + tpmboot setup. For the in-BIOS version without the shim chain, see [V11.md](V11.md).
+
 Hardware tested: ASRock Z97M OC Formula, i7-4790K, **ASRock TPM2-S** (Infineon SLB9665, 18-pin "18pin-1" LPC header). An SLB9665 clone module behaved the same way. The OS was Windows 11 on GPT/UEFI with CSM disabled.
 
 ## 0. Get the inputs

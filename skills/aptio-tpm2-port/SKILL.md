@@ -28,6 +28,9 @@ The firmware port alone did **not** make Windows see the TPM on the reference bo
 - **FFS checksums:** header checksum over 24 bytes, with State and IntegrityCheck.File zeroed. If attribute 0x40 is set, the body checksum goes in byte 17.
 - Assert everything: the file count in the replaced region, size limits, a decompress round-trip, and identity of the untouched regions (`firmware/verify_image.py` is the template).
 
+## 3b. Adding your own driver
+A small custom DXE driver (e.g. `tpmdxe/`) can fill gaps the vendor stack leaves, such as publishing the TPM2 table. Append it to the nested DXE FV as an FFS DRIVER file with a minimal depex. Firmware-volume code is trusted by Secure Boot, so this is cleaner than any boot-chain workaround. Always offer a no-flash dry run first (shell `load driver.efi`).
+
 ## 4. Setup gating
 Ported TPM menus are often hidden, or their defaults are off. Extract the IFR from the Setup module, find the varstore offsets (on the reference board: `0x26` support, `0x21` state, `0x33` device select, `0x4A1` ASRock auto-detect), and write them with `setup_var.efi` from a UEFI shell. Test forced-2.0 last: it can hang before the shell, and the recovery is a CMOS clear.
 

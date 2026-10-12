@@ -5,7 +5,7 @@
 #   \EFI\BOOT\mmx64.efi    MokManager signed by Debian (matches that shim's vendor cert)
 #   \EFI\BOOT\grubx64.efi  pbatard UEFI Shell + .sbat  (what shim starts; enroll its hash once)
 #   \sb\shimx64.efi, \sb\mmx64.efi, \sb\grubx64.efi(=tpmboot.efi)   used by install_sb.nsh
-#   \tpmboot.efi, \setup_var.efi, \*.nsh
+#   \tpmboot.efi, \tpmdxe.efi (V11 dry run), \setup_var.efi, \*.nsh
 #
 # Every download is pinned by sha256.  If Debian has dropped a version from its pool,
 # set SHIM_DEB_URL / MM_DEB_URL to a snapshot.debian.org URL of the same file.
@@ -54,6 +54,8 @@ python3 "$ROOT/tools/pe_sbat.py" add "$DL/shellx64.efi" $OUT/EFI/BOOT/grubx64.ef
 [ -f "$ROOT/tpmboot/tpmboot.efi" ] || bash "$ROOT/tpmboot/build.sh"
 cp "$ROOT/tpmboot/tpmboot.efi" $OUT/tpmboot.efi
 cp "$ROOT/tpmboot/tpmboot.efi" $OUT/sb/grubx64.efi
+[ -f "$ROOT/tpmdxe/tpmdxe.efi" ] || bash "$ROOT/tpmdxe/build.sh"
+cp "$ROOT/tpmdxe/tpmdxe.efi" $OUT/tpmdxe.efi                  # V11 driver, for test_tpmdxe.nsh
 cp $OUT/sb/shimx64.efi $OUT/EFI/BOOT/BOOTX64.EFI
 cp $OUT/sb/mmx64.efi   $OUT/EFI/BOOT/mmx64.efi
 cp "$DL/setup_var.efi" $OUT/setup_var.efi

@@ -16,4 +16,5 @@ echo   tpm_fw_on.nsh      firmware TPM support ON, TPM state off (fallback if tp
 echo   tpmboot.efi        run the shim now: starts TPM, adds TPM2 ACPI table, boots Windows
 echo   install_sb.nsh     install signed shim + tpmboot on the Windows EFI partition (Secure Boot)
 echo   install_tpmboot.nsh  install tpmboot only (Secure Boot off)
+echo   test_tpmdxe.nsh    V11 dry run: load the in-BIOS driver from the stick, then boot Windows
 echo   tpmtest.nsh / tpmclear.nsh / diag.nsh   manual TIS tests

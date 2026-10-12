@@ -8,7 +8,7 @@ from uefi_firmware import efi_compressor
 NESTED = bytes.fromhex('2f7c71ae421a2b4f886178b79ca07e07')
 TPM_GUIDS = {'TrEEPei': '20341ce2-d448-4b5e-9411-fe9826402dcf', 'AmiTpm20PlatformPei': '0d8039ff-49e9-4cc9-a806-bb7c31b0bcb0',
              'TrEEDxe': '12345756-fca3-49bd-8dae-c7bae8389aff', 'Tpm20PlatformDxe': '0718ad81-f26a-4850-a6ec-f268e309d707',
-             'Tpm20Acpi': '4c8bdf60-2085-4577-8a46-96cb180967bc'}
+             'Tpm20Acpi': '4c8bdf60-2085-4577-8a46-96cb180967bc', 'TpmBootDxe (V11)': '78c18031-b5ae-4112-a635-70285b920a2f'}
 
 def le(s):
     p = s.split('-'); return struct.pack('<IHH', int(p[0], 16), int(p[1], 16), int(p[2], 16)) + bytes.fromhex(p[3] + p[4])
