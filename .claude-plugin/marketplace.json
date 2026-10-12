@@ -1,6 +1,10 @@
 {
   "name": "z97m-ocf-tpm2",
-  "owner": { "name": "Mihai Macarie", "url": "https://github.com/mihaimacarie98" },
+  "description": "Agent skills for TPM 2.0 + Secure Boot on legacy AMI Aptio IV motherboards (ASRock Z97M OC Formula reference).",
+  "owner": {
+    "name": "Mihai Macarie",
+    "url": "https://github.com/mihaimacarie98"
+  },
   "plugins": [
     {
       "name": "z97m-tpm2-skills",
