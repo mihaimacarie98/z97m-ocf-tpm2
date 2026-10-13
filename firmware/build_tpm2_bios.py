@@ -31,7 +31,7 @@ from uefi_firmware import efi_compressor
 STOCK_SHA = '4f896e21e5f817fde2c20c08ce7df5ca707dc8449613b9ac833d21eccd8db326'   # Z97MOCF2.50
 DONOR_SHA = 'f096bc699880657902837245eb02743392d5e94e0e03f05ebdfa3d82174875e2'   # Z97Ex62.80A
 RESULT_SHA = 'c6893a97275c1ed39000e7edeaa348c82ab97642668a9506ec69f1c043b4032c'
-V11_SHA = 'ff3fcc89feb9c53934c964a202c1f947450ee725310afc49ad463798a7ea379b'      # with tpmdxe.efi 0aafe843...
+V11_SHA = 'ddd26ddbfce7a2aaff23a085c43a9dd05f37912e14b0a049c6730d9d080e9839'      # with tpmdxe.efi 9ea9c236...
 
 # module name -> FFS GUID (identical GUIDs in stock and donor)
 GUIDS = {
@@ -57,7 +57,9 @@ GUIDS = {
     'AmiBoardInfo':              '9f3a0016-ae55-4288-829d-d22fd344c347',
 }
 TPMBOOTDXE_GUID = '78c18031-b5ae-4112-a635-70285b920a2f'    # FFS GUID chosen for TpmBootDxe
-ACPI_TABLE_PROTOCOL = 'ffe06bdd-6107-46a6-7bb2-5a9c7ec5275c'   # its only dependency
+ACPI_TABLE_PROTOCOL = 'ffe06bdd-6107-46a6-7bb2-5a9c7ec5275c'   # its dependencies: ACPI tables +
+VARIABLE_ARCH = '1e5668e2-8481-11d4-bcf1-0080c73c8881'         # variable services (for the
+VARIABLE_WRITE_ARCH = '6441f818-6362-4e44-b570-7dba31dd2453'   # TpmBootDxe status variable)
 NESTED_FV_FILE = bytes.fromhex('2f7c71ae421a2b4f886178b79ca07e07')  # ae717c2f-... (compressed DXE FV)
 PAD_GUID = bytes.fromhex('856543e40979604ab5c6ecdea6ebfb54')
 
@@ -261,8 +263,8 @@ def build(stock, donor, tpmdxe=None):
     repl[g('AmiBoardInfo')] = patch_dsdt(getfile(sn, 0, len(sn), g('AmiBoardInfo')))
     ins = [getfile(kn, 0, len(kn), g(n)) for n in ('TrEEDxe', 'Tpm20PlatformDxe', 'Tpm20Acpi')]
     if tpmdxe:
-        ins.append(mk_driver_ffs(tpmdxe, TPMBOOTDXE_GUID, 'TpmBootDxe', [ACPI_TABLE_PROTOCOL]))
-        print(f"DXE  + TpmBootDxe {TPMBOOTDXE_GUID} (0x{len(ins[-1]):X} bytes, depex: ACPI table protocol)")
+        ins.append(mk_driver_ffs(tpmdxe, TPMBOOTDXE_GUID, 'TpmBootDxe', [ACPI_TABLE_PROTOCOL, VARIABLE_ARCH, VARIABLE_WRITE_ARCH]))
+        print(f"DXE  + TpmBootDxe {TPMBOOTDXE_GUID} (0x{len(ins[-1]):X} bytes, depex: ACPI table + variable protocols)")
 
     hlen = struct.unpack('<H', sn[0x30:0x32])[0]
     nv = bytearray(sn[:hlen]); nrepl = 0

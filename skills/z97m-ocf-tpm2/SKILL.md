@@ -37,7 +37,7 @@ The expected output sha256 is `c6893a97275c1ed39000e7edeaa348c82ab97642668a9506e
 7. Verify: `tpm.msc` shows ready, 2.0. `msinfo32` shows Secure Boot On. `Get-Tpm`, `Confirm-SecureBootUEFI`.
 
 ## V11 alternative (branch `v11`, not yet hardware-tested)
-`firmware/build_tpm2_bios.py … --tpmdxe tpmdxe/tpmdxe.efi` builds the BIOS with TpmBootDxe, which removes the need for steps 3–6's shim chain. Follow `docs/V11.md`: dry run with `test_tpmdxe.nsh` (Secure Boot off), back up the chip, run `migrate/remove_shim_chain.ps1`, then flash with `merge_nvram.py` (keeps the keys and settings). Present it as untested until a user confirms it.
+`firmware/build_tpm2_bios.py … --tpmdxe tpmdxe/tpmdxe.efi` builds the BIOS with TpmBootDxe, which removes the need for steps 3–6's shim chain. Follow `docs/V11.md`. Recommend a **spare SPI chip** so V9 stays intact. The V11 stick's `startup.nsh` works out what to do on its own: on a V9 BIOS it dry-runs the driver (Secure Boot off); on a V11 BIOS it removes the old shim chain. It detects V11 through the volatile variable `TpmBootDxe-{78c18031-…}`, which holds {DID_VID, Startup rc, table status}. Flash with `merge_nvram.py` (keeps the keys and settings). Present V11 as untested until a user confirms it.
 
 ## Diagnosis map
 Go through the `docs/INSTALL.md` troubleshooting table. The key facts:

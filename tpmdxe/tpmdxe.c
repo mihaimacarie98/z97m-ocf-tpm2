@@ -4,6 +4,8 @@
  * 0) if the TPM reads 0xFFFFFFFF, open the PCH LPC decode window for 0xFED40000 (LGMR)
  * 1) TPM2_Startup(CLEAR)+SelfTest over TIS (polling, bounded waits)
  * 2) install the TPM2 ACPI table (rev3, StartMethod 6)
+ * 3) publish a volatile variable TpmBootDxe-{78c18031-...} = {DID_VID, Startup rc, table status}
+ *    so the USB stick's startup.nsh can detect V11 firmware (`dmpstore TpmBootDxe -guid ...`)
  * Never blocks boot: no TPM -> returns at once; every wait has a timeout.
  * Because it lives in flash, Secure Boot never checks it: no shim/MokManager needed. */
 #include <efi.h>
@@ -94,6 +96,14 @@ static __attribute__((ms_abi)) VOID on_ready_to_boot(EFI_EVENT ev,VOID*ctx){
     uefi_call_wrapper(BS->CloseEvent,1,ev);
 }
 
+/* volatile (gone at power-off), readable from the shell and from Windows */
+static void report(UINT32 didvid,UINT32 rc,EFI_STATUS table){
+    static EFI_GUID g={0x78c18031,0xb5ae,0x4112,{0xa6,0x35,0x70,0x28,0x5b,0x92,0x0a,0x2f}};
+    UINT32 v[3]={didvid,rc,(UINT32)table};
+    uefi_call_wrapper(RT->SetVariable,5,L"TpmBootDxe",&g,
+        EFI_VARIABLE_BOOTSERVICE_ACCESS|EFI_VARIABLE_RUNTIME_ACCESS,sizeof v,v);
+}
+
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE image,EFI_SYSTEM_TABLE*systab){
     static const UINT8 startup[]={0x80,0x01,0,0,0,0x0C,0,0,0x01,0x44,0,0};
     static const UINT8 selftest[]={0x80,0x01,0,0,0,0x0B,0,0,0x01,0x43,0x01};
@@ -103,11 +113,11 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image,EFI_SYSTEM_TABLE*systab){
     UINT32 id=r32(TIS_DIDVID);
     BOOLEAN opened=FALSE;
     if(!tpm_present(id)){id=lpc_enable_tpm_decode();opened=TRUE;}
-    if(!tpm_present(id))return EFI_SUCCESS;                       /* no TPM module: nothing to do */
+    if(!tpm_present(id)){report(id,0xFFFFFFFF,EFI_NOT_FOUND);return EFI_SUCCESS;}   /* no TPM module */
     UINT32 rc=tpm_cmd(startup,sizeof startup);
-    if(rc!=0&&rc!=0x100)return EFI_SUCCESS;                       /* chip not answering: don't advertise it */
+    if(rc!=0&&rc!=0x100){report(id,rc,EFI_NOT_READY);return EFI_SUCCESS;}           /* chip not answering: don't advertise it */
     tpm_cmd(selftest,sizeof selftest);
-    install_tpm2_table();
+    report(id,rc,install_tpm2_table());
     if(opened)uefi_call_wrapper(BS->CreateEventEx,6,EVT_NOTIFY_SIGNAL,TPL_CALLBACK,on_ready_to_boot,NULL,&ready_to_boot,&ev);
     return EFI_SUCCESS;                                           /* stay resident for the callback */
 }
