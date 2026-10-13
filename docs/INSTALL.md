@@ -33,7 +33,9 @@ Flash the full 8 MiB and verify. If a verify error shows up at a random address,
 bash usb/make_usb.sh      # result in usb/out/
 ```
 
-Copy the **contents** of `usb/out/` to the root of a FAT32 stick. The stick boots through the signed shim, so it works with Secure Boot on or off.
+Copy the **contents** of `usb/out/` to the root of a FAT32 stick.
+
+**Automatic mode:** when the stick boots, `startup.nsh` runs by itself (press ESC during the 5-second countdown to skip it). On the first run it sets the TPM setup variables (firmware TPM support off), installs shim + MokManager + tpmboot on the Windows EFI partition, adds the "TPM Boot (Secure)" boot entry and reboots. Remove the stick while it reboots. On later runs it sees the install, changes nothing and stays in the shell. Running it again is safe: files and the boot entry are added only once. Steps 3 and 4 below are the same work done by hand. The stick boots through the signed shim, so it works with Secure Boot on or off.
 
 ## 3. TPM setup variables
 
